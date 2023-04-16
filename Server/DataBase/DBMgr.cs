@@ -42,6 +42,7 @@ public class DBMgr : SingletonPattern<DBMgr>
                         power = mySqlDataReader.GetInt32("power"),
                         coin = mySqlDataReader.GetInt32("coin"),
                         diamond = mySqlDataReader.GetInt32("diamond"),
+                        crystal = mySqlDataReader.GetInt32("crystal"),
 
                         hp = mySqlDataReader.GetInt32("hp"),
                         ad = mySqlDataReader.GetInt32("ad"),
@@ -52,9 +53,47 @@ public class DBMgr : SingletonPattern<DBMgr>
                         pierce = mySqlDataReader.GetInt32("pierce"),
                         critical = mySqlDataReader.GetInt32("critical"),
 
-                        guideid = mySqlDataReader.GetInt32("guideid")
+                        guideid = mySqlDataReader.GetInt32("guideid"),
+                        time = mySqlDataReader.GetInt64("time"),
+                        fuben = mySqlDataReader.GetInt32("fuben"),
                         //To add
                     };
+
+                    #region StrongArr
+                    //数据示意：1#2#2#4#3#7#
+                    string[] strongStrArr = mySqlDataReader.GetString("strong").Split('#');
+                    int[] _strongArr = new int[6];
+                    for (int i = 0; i < strongStrArr.Length; i++)
+                    {
+                        if (strongStrArr[i] == "") continue;//最后一个#号会被分割为空字符串
+
+                        if (int.TryParse(strongStrArr[i], out int starlv))
+                            _strongArr[i] = starlv;
+                        else PECommon.Log("Parse Strong Data Error", LogType.Error);
+                    }
+                    playerData.strongArr = _strongArr;
+
+                    #endregion 
+
+                    #region TaskArr
+                    //数据示意：1|0|0#2|0|0#3|0|0#4|0|0#，第一个数是ID，第二个数是进度，第三个数是是否领取
+                    string[] taskAwardStrArr = mySqlDataReader.GetString("task").Split('#');
+                    string[] _taskArr = new string[6];
+                    for (int i = 0; i < taskAwardStrArr.Length; i++)
+                    {
+                        if (taskAwardStrArr[i] == "") continue;//最后一个#号会被分割为空字符串
+                        else if (taskAwardStrArr[i].Length >= 5)//数据安全性的校验，每个“1|0|0”的字符串长度不小于5
+                        {
+                            _taskArr[i] = taskAwardStrArr[i];
+                        }
+                        else
+                        {
+                            throw new Exception("DataErr");
+                        }
+                    }
+                    playerData.taskArr = _taskArr;
+                    #endregion
+                    //To add
                 }
             }
         }
@@ -77,6 +116,7 @@ public class DBMgr : SingletonPattern<DBMgr>
                     power = 150,
                     coin  = 5000,
                     diamond = 500,
+                    crystal = 500,
 
                     hp = 2000,
                     ad = 275,
@@ -87,7 +127,11 @@ public class DBMgr : SingletonPattern<DBMgr>
                     pierce = 5,
                     critical = 2,
 
-                    guideid = 1001
+                    guideid = 1001,
+                    strongArr = new int[6],
+                    time = TimerSvc.Instance.GetNowTime(),
+                    taskArr = new string[6] {"1|0|0", "2|0|0", "3|0|0", "4|0|0", "5|0|0", "6|0|0" },
+                    fuben = 10001,
                     //To add
                 };
                 playerData.id = InsertNewAcctData(acct, pass, playerData);
@@ -108,9 +152,9 @@ public class DBMgr : SingletonPattern<DBMgr>
         try
         {
             MySqlCommand cmd = new MySqlCommand(
-                "insert into account set acct=@acct,pass=@pass,name=@name,level=@level,exp=@exp,power=@power,coin=@coin,diamond=@diamond," +
+                "insert into account set acct=@acct,pass=@pass,name=@name,level=@level,exp=@exp,power=@power,coin=@coin,diamond=@diamond,crystal=@crystal," +
                 "hp=@hp,ad=@ad,addef=@addef,apdef=@apdef,dodge=@dodge,pierce=@pierce,critical=@critical," +
-                "guideid=@guideid",
+                "guideid=@guideid,strong=@strong,time=@time,task=@task,fuben=@fuben",
                 conn);
             cmd.Parameters.AddWithValue("acct", acct);
             cmd.Parameters.AddWithValue("pass", pass);
@@ -120,6 +164,7 @@ public class DBMgr : SingletonPattern<DBMgr>
             cmd.Parameters.AddWithValue("power", playerData.power);
             cmd.Parameters.AddWithValue("coin", playerData.coin);
             cmd.Parameters.AddWithValue("diamond", playerData.diamond);
+            cmd.Parameters.AddWithValue("crystal", playerData.crystal);
 
             cmd.Parameters.AddWithValue("hp", playerData.hp);
             cmd.Parameters.AddWithValue("ad", playerData.ad);
@@ -130,6 +175,26 @@ public class DBMgr : SingletonPattern<DBMgr>
             cmd.Parameters.AddWithValue("critical", playerData.critical);
 
             cmd.Parameters.AddWithValue("guideid", playerData.guideid);
+
+            string strongInfo = "";
+            for (int i = 0; i < playerData.strongArr.Length; i++)
+            {
+                strongInfo += playerData.strongArr[i];
+                strongInfo += "#";
+            }
+            cmd.Parameters.AddWithValue("strong", strongInfo);
+
+            cmd.Parameters.AddWithValue("time",playerData.time);
+
+            string _taskArr = "";
+            for (int i = 0; i < playerData.taskArr.Length; i++)
+            {
+                _taskArr += playerData.taskArr[i];
+                _taskArr += "#";
+            }
+            cmd.Parameters.AddWithValue("task", _taskArr);
+
+            cmd.Parameters.AddWithValue("fuben", playerData.fuben);
             //To add
             cmd.ExecuteNonQuery();
             id = (int)cmd.LastInsertedId;
@@ -175,9 +240,9 @@ public class DBMgr : SingletonPattern<DBMgr>
         try
         {
             MySqlCommand cmd = new MySqlCommand(
-                "update account set name=@name,level=@level,exp=@exp,power=@power,coin=@coin,diamond=@diamond," +
+                "update account set name=@name,level=@level,exp=@exp,power=@power,coin=@coin,diamond=@diamond,crystal=@crystal," +
                 "hp=@hp,ad=@ad,addef=@addef,apdef=@apdef,dodge=@dodge,pierce=@pierce,critical=@critical," +
-                "guideid=@guideid"+
+                "guideid=@guideid,strong=@strong,time=@time,task=@task,fuben=@fuben"+
                 " where id=@id", conn);
             cmd.Parameters.AddWithValue("id", id);
             cmd.Parameters.AddWithValue("name", playerData.name);
@@ -186,6 +251,7 @@ public class DBMgr : SingletonPattern<DBMgr>
             cmd.Parameters.AddWithValue("power", playerData.power);
             cmd.Parameters.AddWithValue("coin", playerData.coin);
             cmd.Parameters.AddWithValue("diamond", playerData.diamond);
+            cmd.Parameters.AddWithValue("crystal", playerData.crystal);
 
             cmd.Parameters.AddWithValue("hp", playerData.hp);
             cmd.Parameters.AddWithValue("ad", playerData.ad);
@@ -197,12 +263,33 @@ public class DBMgr : SingletonPattern<DBMgr>
 
             cmd.Parameters.AddWithValue("guideid", playerData.guideid);
 
+            string strongInfo = "";
+            for (int i = 0; i < playerData.strongArr.Length; i++)
+            {
+                strongInfo += playerData.strongArr[i];
+                strongInfo += "#";
+            }
+            cmd.Parameters.AddWithValue("strong", strongInfo);
+
+            cmd.Parameters.AddWithValue("time",playerData.time);
+
+            string _taskArr = "";
+            for (int i = 0; i < playerData.taskArr.Length; i++)
+            {
+                _taskArr += playerData.taskArr[i];
+                _taskArr += "#";
+            }
+            cmd.Parameters.AddWithValue("task", _taskArr);
+
+            cmd.Parameters.AddWithValue("fuben", playerData.fuben);
             //To add
             cmd.ExecuteNonQuery();
         }
         catch (Exception ex)
         {
             PECommon.Log("Update PlayerData Error: " + ex.Message, LogType.Error);
+            upDated = false;
+            return upDated;
         }
         return upDated;
     }

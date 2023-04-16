@@ -37,10 +37,36 @@ public class CacheSvc:SingletonPattern<CacheSvc>
         }
         return playerData;
     }
+    public List<ServerSession> GetOnlineServerSessions()
+    {
+        List<ServerSession> lst = new List<ServerSession>();
+        foreach(var item in onLineSessionDic)
+        {
+            lst.Add(item.Key);
+        }
+        return lst;
+    }
+    public ServerSession GetOnlineServerSession(int id)
+    {
+        ServerSession session = null;
+        foreach (var item in onLineSessionDic)
+        {
+            if (item.Value.id == id)
+            {
+                session = item.Key;
+                break;
+            }
+        }
+        return session;
+    }
     public bool UpdatePlayerData(int id,PlayerData playerData)
     {
         // To do
         return dbMgr.UpdatePalyerData(id,playerData);
+    }
+    public Dictionary<ServerSession, PlayerData> GetOnlineCache()
+    {
+        return onLineSessionDic;
     }
 
     public void AcctOffLine(ServerSession session)

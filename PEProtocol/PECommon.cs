@@ -27,5 +27,36 @@ public class PECommon
     {
         return 100 * lv * lv;
     }
+    /// <summary>
+    /// 增加体力值的间隔，单位：分钟
+    /// </summary>
+    public const int PowerAddInterval = 5;
+    /// <summary>
+    /// 增加多少体力值
+    /// </summary>
+    public const int PowerAddNum = 2;
+
+    public static void CalcExp(PlayerData playerData, int addExp)
+    {
+        int curLv = playerData.lv;
+        int curExp = playerData.exp;
+        int addRestExp = addExp;
+        while (true)
+        {
+            int upNeedExp = GetExpUpValByLv(curLv) - curExp;
+            if (addRestExp >= upNeedExp)
+            {
+                curLv += 1;
+                curExp = 0;
+                addRestExp -= upNeedExp;
+            }
+            else
+            {
+                playerData.lv = curLv;
+                playerData.exp = curExp + addRestExp;
+                break;
+            }
+        }
+    }
 }
 

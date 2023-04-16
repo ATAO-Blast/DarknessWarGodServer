@@ -3,10 +3,12 @@
 public class LoginSys : SingletonPattern<LoginSys>
 {
     private CacheSvc _cacheSvc;
+    private TimerSvc _timerSvc;
     public void Init()
     {
-        PECommon.Log("LoginSys Init Done");
         _cacheSvc = CacheSvc.Instance;
+        _timerSvc = TimerSvc.Instance;
+        PECommon.Log("LoginSys Init Done");
     }
     public void ReqLogin(MsgPack msgPack)
     {
@@ -33,6 +35,29 @@ public class LoginSys : SingletonPattern<LoginSys>
             }
             else
             {
+                //计算离线体力增长
+                int power = _playerData.power;
+                long nowtime = _timerSvc.GetNowTime();
+                long playerOfflineTime = _playerData.time;
+                long playerOfflineDuration = nowtime - playerOfflineTime;
+                int addPower = (int)(playerOfflineDuration / (PECommon.PowerAddInterval * 60 * 1000))*PECommon.PowerAddNum;
+                if (addPower > 0)
+                {
+                    int powerMax = PECommon.GetPowerLimit(_playerData.lv);
+                    if (_playerData.power < powerMax)
+                    {
+                        _playerData.power += addPower;
+                        if (_playerData.power > powerMax)
+                        {
+                            _playerData.power = powerMax;
+                        }
+                    }
+                }
+                if (power != _playerData.power)
+                {
+                    _cacheSvc.UpdatePlayerData(_playerData.id, _playerData);
+                }
+
                 msg.rspLogin = new RspLogin
                 {
                     playerData = _playerData
@@ -82,7 +107,17 @@ public class LoginSys : SingletonPattern<LoginSys>
     }
     public void ClearOfflieData(ServerSession session)
     {
-        _cacheSvc.AcctOffLine(session);
+        //写入下线时间
+        PlayerData pd = _cacheSvc.GetPalyerDataBySession(session);
+        if (pd != null)
+        {
+            pd.time = _timerSvc.GetNowTime();
+            if(!_cacheSvc.UpdatePlayerData(pd.id, pd))
+            {
+                PECommon.Log("Update Offline time error",LogType.Error);
+            }
+            _cacheSvc.AcctOffLine(session);
+        }
     }
 }
 

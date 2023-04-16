@@ -52,6 +52,21 @@ public class NetSvc : SingletonPattern<NetSvc>
             case CMD.ReqRename:
                 LoginSys.Instance.ReqRename(msgPack);
                 break;
+            case CMD.ReqGuide:
+                GuideSys.Instance.ReqGuide(msgPack);
+                break;
+            case CMD.ReqStrong:
+                StrongSys.Instance.ReqStrong(msgPack);
+                break;
+            case CMD.SndChat:
+                ChatSys.Instance.SendChat(msgPack);
+                break;
+            case CMD.ReqBuy:
+                BuySys.Instance.ReqBuy(msgPack);
+                break;
+            case CMD.ReqTakeTaskReward:
+                TaskSys.Instance.ReqTakeTaskReward(msgPack);
+                break;
         }
     }
 }

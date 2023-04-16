@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using PENet;
 
 public class ServerStart
@@ -10,6 +11,7 @@ public class ServerStart
         while (true)
         {
             ServerRoot.Instance.Update();
+            Thread.Sleep(20);
         }
     }
 }
